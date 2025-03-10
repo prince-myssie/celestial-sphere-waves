@@ -110,6 +110,41 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
+.glass-sphere {
+  background: radial-gradient(circle at 30% 30%, 
+    rgba(255, 255, 255, 0.5) 0%, 
+    rgba(255, 255, 255, 0.2) 50%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-sphere::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  width: 30%;
+  height: 20%;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: rotate(-20deg);
+}
+
+.glass-sphere::before {
+  content: '';
+  position: absolute;
+  bottom: 15%;
+  right: 20%;
+  width: 15%;
+  height: 8%;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: rotate(15deg);
+}
+
 @keyframes pulse-slow {
   0%, 100% {
     transform: scale(1);
@@ -172,14 +207,14 @@
 
 @keyframes neon-pulse {
   0%, 100% {
-    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7)) 
-            drop-shadow(0 0 10px rgba(89, 192, 232, 0.5)) 
-            brightness(1);
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)) 
+            drop-shadow(0 0 10px rgba(89, 192, 232, 0.6)) 
+            brightness(1.1);
   }
   50% {
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9)) 
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.95)) 
             drop-shadow(0 0 20px rgba(89, 192, 232, 0.8)) 
-            brightness(1.2);
+            brightness(1.4);
   }
 }
 
@@ -190,21 +225,49 @@
 /* Enhanced neon glow effects */
 @keyframes neon-glow {
   0%, 100% {
-    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) 
-            drop-shadow(0 0 15px rgba(89, 192, 232, 0.6)) 
-            drop-shadow(0 0 25px rgba(66, 232, 213, 0.4)) 
-            brightness(1.1);
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.9)) 
+            drop-shadow(0 0 15px rgba(89, 192, 232, 0.7)) 
+            drop-shadow(0 0 25px rgba(66, 232, 213, 0.5)) 
+            brightness(1.2);
   }
   50% {
-    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.95)) 
-            drop-shadow(0 0 25px rgba(89, 192, 232, 0.8)) 
-            drop-shadow(0 0 35px rgba(66, 232, 213, 0.6)) 
-            brightness(1.3);
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 1)) 
+            drop-shadow(0 0 25px rgba(89, 192, 232, 0.9)) 
+            drop-shadow(0 0 35px rgba(66, 232, 213, 0.7)) 
+            brightness(1.5);
   }
 }
 
 .neon-glow {
   animation: neon-glow 4s ease-in-out infinite;
+}
+
+/* Enhanced multi-color neon */
+@keyframes multi-neon {
+  0% {
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.9)) 
+            drop-shadow(0 0 15px rgba(66, 232, 213, 0.7)) 
+            brightness(1.2);
+  }
+  33% {
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.95)) 
+            drop-shadow(0 0 20px rgba(89, 192, 232, 0.8)) 
+            brightness(1.3);
+  }
+  66% {
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 1)) 
+            drop-shadow(0 0 25px rgba(224, 110, 187, 0.9)) 
+            brightness(1.4);
+  }
+  100% {
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.9)) 
+            drop-shadow(0 0 15px rgba(66, 232, 213, 0.7)) 
+            brightness(1.2);
+  }
+}
+
+.multi-neon-glow {
+  animation: multi-neon 10s ease-in-out infinite;
 }
 
 /* 3D undulation effect */
@@ -243,4 +306,36 @@
 
 .voice-reactive {
   animation: voice-react 0.5s ease-in-out infinite;
+}
+
+/* Glass shine effect */
+@keyframes glass-shine {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 300% 0;
+  }
+}
+
+.glass-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(30deg);
+  animation: glass-shine 8s ease-in-out infinite;
 }
