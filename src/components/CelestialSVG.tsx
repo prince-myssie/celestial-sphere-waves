@@ -24,19 +24,19 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
     // Base configuration for different states
     const config = {
       idle: {
-        count: 3,
+        count: 1,
         scale: 0.4,
         variation: 0.05,
         colors: ['#59c0e8', '#e06ebb', '#42e8d5']
       },
       listening: {
-        count: 4,
+        count: 1,
         scale: 0.45 + audioLevel * 0.1,
         variation: 0.1 + audioLevel * 0.05,
         colors: ['#e06ebb', '#59c0e8', '#42e8d5', '#e06ebb']
       },
       speaking: {
-        count: 5,
+        count: 1,
         scale: 0.5 + audioLevel * 0.15,
         variation: 0.15 + audioLevel * 0.1,
         colors: ['#42e8d5', '#e06ebb', '#59c0e8', '#42e8d5', '#e06ebb']
@@ -56,7 +56,7 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
       
       // Create different blob shapes using bezier curves for smoothness
       const points = [];
-      const pointCount = 8 + i % 4; // Increased point count for smoother shapes
+      const pointCount = 12 + i % 4; // Increased point count for smoother shapes
       
       for (let j = 0; j <= pointCount; j++) {
         const angle = (j / pointCount) * Math.PI * 2 + offset * (1 + i * 0.1);
@@ -84,15 +84,17 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
           const prevX = anchorX + Math.cos(prevAngle) * clampedPrevRadius;
           const prevY = anchorY + Math.sin(prevAngle) * clampedPrevRadius;
           
-          // Control point 1
+          // Control point 1 - enhanced curve control
           const cp1Angle = prevAngle + (angle - prevAngle) * 0.3;
-          const cp1Radius = clampedPrevRadius * 1.2;
+          const cp1RadiusMod = 1.2 + Math.sin(offset * 2.5) * 0.2; // Dynamic radius modifier
+          const cp1Radius = clampedPrevRadius * cp1RadiusMod;
           const cp1x = anchorX + Math.cos(cp1Angle) * cp1Radius;
           const cp1y = anchorY + Math.sin(cp1Angle) * cp1Radius;
           
-          // Control point 2
+          // Control point 2 - enhanced curve control
           const cp2Angle = prevAngle + (angle - prevAngle) * 0.7;
-          const cp2Radius = clampedRadius * 1.2;
+          const cp2RadiusMod = 1.2 + Math.sin(offset * 3.2 + 1.5) * 0.2; // Different phase
+          const cp2Radius = clampedRadius * cp2RadiusMod;
           const cp2x = anchorX + Math.cos(cp2Angle) * cp2Radius;
           const cp2y = anchorY + Math.sin(cp2Angle) * cp2Radius;
           
@@ -103,13 +105,68 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
       // Close the path
       points.push("Z");
       
-      // Add to blobs array
-      blobs.push({
-        path: points.join(' '),
-        color: colors[i % colors.length],
-        opacity: 0.8 - (i / count) * 0.3,
-        animationDelay: `${i * 0.5}s`
-      });
+      // Create different blobs with varying colors from the palette
+      for (let k = 0; k < 3; k++) {
+        const offsetMod = k * 0.2;
+        const colorIndex = (i + k) % colors.length;
+        const opacityBase = 0.75 - (k * 0.15);
+        
+        // Create different rotation and phase for each layer
+        const modifiedPoints = [];
+        for (let j = 0; j <= pointCount; j++) {
+          const angle = (j / pointCount) * Math.PI * 2 + offset * (1 + (i + k) * 0.15) + offsetMod;
+          // Calculate radius with different phase
+          const blobScale = 1 + Math.sin(offset * 2 + i + k * 0.5) * variation;
+          const distortion = Math.sin(offset * 3 + i + j + k * 0.4) * variation * maxRadius * (1 - k * 0.15);
+          const pointRadius = maxRadius * blobScale * (0.5 + Math.sin(offset + (i + k) * 0.7) * 0.2) + distortion;
+          
+          // Ensure radius stays within limits and shrinks for inner layers
+          const layerScaleFactor = 1 - (k * 0.12);
+          const clampedRadius = Math.min(pointRadius, maxRadius * layerScaleFactor);
+          
+          // Calculate point position
+          const x = anchorX + Math.cos(angle) * clampedRadius;
+          const y = anchorY + Math.sin(angle) * clampedRadius;
+          
+          if (j === 0) {
+            modifiedPoints.push(`M${x},${y}`);
+          } else {
+            // Use cubic bezier curves for smooth shapes
+            const prevAngle = ((j - 1) / pointCount) * Math.PI * 2 + offset * (1 + (i + k) * 0.15) + offsetMod;
+            const prevBlobScale = 1 + Math.sin(offset * 2 + i + k * 0.5 + 0.1) * variation;
+            const prevDistortion = Math.sin(offset * 3 + i + (j-1) + k * 0.4) * variation * maxRadius * (1 - k * 0.15);
+            const prevPointRadius = maxRadius * prevBlobScale * (0.5 + Math.sin(offset + (i + k) * 0.7 + 0.1) * 0.2) + prevDistortion;
+            
+            const prevClampedRadius = Math.min(prevPointRadius, maxRadius * layerScaleFactor);
+            const prevX = anchorX + Math.cos(prevAngle) * prevClampedRadius;
+            const prevY = anchorY + Math.sin(prevAngle) * prevClampedRadius;
+            
+            // Control points for smooth curves
+            const cp1Angle = prevAngle + (angle - prevAngle) * 0.3;
+            const cp1RadiusMod = 1.2 + Math.sin(offset * 2.5 + k * 0.3) * 0.2;
+            const cp1Radius = prevClampedRadius * cp1RadiusMod;
+            const cp1x = anchorX + Math.cos(cp1Angle) * cp1Radius;
+            const cp1y = anchorY + Math.sin(cp1Angle) * cp1Radius;
+            
+            const cp2Angle = prevAngle + (angle - prevAngle) * 0.7;
+            const cp2RadiusMod = 1.2 + Math.sin(offset * 3.2 + 1.5 + k * 0.3) * 0.2;
+            const cp2Radius = clampedRadius * cp2RadiusMod;
+            const cp2x = anchorX + Math.cos(cp2Angle) * cp2Radius;
+            const cp2y = anchorY + Math.sin(cp2Angle) * cp2Radius;
+            
+            modifiedPoints.push(`C${cp1x},${cp1y} ${cp2x},${cp2y} ${x},${y}`);
+          }
+        }
+        
+        modifiedPoints.push("Z");
+        
+        blobs.push({
+          path: modifiedPoints.join(' '),
+          color: colors[colorIndex],
+          opacity: opacityBase - (Math.sin(offset * 1.5 + k) * 0.1),
+          animationDelay: `${(i + k) * 0.3}s`
+        });
+      }
     }
     
     return blobs;
@@ -153,6 +210,14 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
           
+          {/* Enhanced neon glow filter */}
+          <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="15" result="blur" />
+            <feFlood floodColor="#fff" floodOpacity="0.5" result="glow" />
+            <feComposite in="glow" in2="blur" operator="in" result="softGlow" />
+            <feBlend in="SourceGraphic" in2="softGlow" mode="screen" />
+          </filter>
+          
           {/* Create gradients for each blob */}
           {blobs.map((blob, index) => (
             <radialGradient 
@@ -160,12 +225,13 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
               id={`blobGradient-${index}`} 
               cx="50%" 
               cy="50%" 
-              r="60%" 
+              r="70%" 
               fx="30%" 
               fy="30%"
             >
-              <stop offset="0%" stopColor="white" stopOpacity="0.9" />
-              <stop offset="50%" stopColor={blob.color} stopOpacity="0.7" />
+              <stop offset="0%" stopColor="white" stopOpacity="0.95" />
+              <stop offset="40%" stopColor={blob.color} stopOpacity="0.85" />
+              <stop offset="80%" stopColor={blob.color} stopOpacity="0.4" />
               <stop offset="100%" stopColor={blob.color} stopOpacity="0.1" />
             </radialGradient>
           ))}
@@ -175,7 +241,7 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
         <circle 
           cx={size / 2} 
           cy={size / 2} 
-          r={size * 0.4} 
+          r={size * 0.42} 
           fill="url(#sphereGradient)" 
           opacity="0.7"
         />
@@ -186,13 +252,13 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
           cy={size / 2} 
           r={size * 0.45} 
           fill="none" 
-          stroke="rgba(255, 255, 255, 0.2)" 
+          stroke="rgba(255, 255, 255, 0.15)" 
           strokeWidth="1" 
           filter="url(#glow)"
         />
         
         {/* Render blob shapes */}
-        <g>
+        <g filter="url(#neonGlow)">
           {blobs.map((blob, index) => (
             <path
               key={index}
@@ -207,8 +273,8 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
                 transform: state === 'idle' 
                   ? `scale(${1 + Math.sin(offset + index) * 0.03})`
                   : state === 'listening'
-                  ? `scale(${1 + Math.sin(offset * 2 + index) * 0.05 + audioLevel * 0.1})`
-                  : `scale(${1 + Math.sin(offset * 3 + index) * 0.08 + audioLevel * 0.15})`
+                  ? `scale(${1 + Math.sin(offset * 2 + index) * 0.05 + audioLevel * 0.15})`
+                  : `scale(${1 + Math.sin(offset * 3 + index) * 0.08 + audioLevel * 0.2})`
               }}
             />
           ))}
@@ -221,18 +287,41 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
           r={size * 0.1} 
           fill="url(#glowGradient)" 
           className="animate-pulse-soft"
+          filter="url(#glow)"
+        />
+        
+        {/* Highlights - simulating 3D reflection */}
+        <ellipse
+          cx={size * 0.4} 
+          cy={size * 0.4}
+          rx={size * 0.05}
+          ry={size * 0.03}
+          fill="rgba(255, 255, 255, 0.4)"
+          transform={`rotate(-20, ${size/2}, ${size/2})`}
+          className="animate-pulse-soft"
+        />
+        
+        {/* Secondary highlight */}
+        <ellipse
+          cx={size * 0.55} 
+          cy={size * 0.35}
+          rx={size * 0.02}
+          ry={size * 0.01}
+          fill="rgba(255, 255, 255, 0.5)"
+          className="animate-pulse-soft"
+          style={{ animationDelay: "0.5s" }}
         />
       </svg>
       
       {/* External glow effect */}
       <div 
-        className="absolute inset-0 celestial-glow rounded-full opacity-50"
+        className="absolute inset-0 celestial-glow rounded-full opacity-60"
         style={{
           background: state === 'idle' 
-            ? 'radial-gradient(circle, rgba(89,192,232,0.2) 0%, rgba(89,192,232,0) 70%)' 
+            ? 'radial-gradient(circle, rgba(89,192,232,0.3) 0%, rgba(89,192,232,0) 70%)' 
             : state === 'listening'
-            ? 'radial-gradient(circle, rgba(224,110,187,0.3) 0%, rgba(224,110,187,0) 70%)'
-            : 'radial-gradient(circle, rgba(66,232,213,0.3) 0%, rgba(66,232,213,0) 70%)'
+            ? 'radial-gradient(circle, rgba(224,110,187,0.4) 0%, rgba(224,110,187,0) 70%)'
+            : 'radial-gradient(circle, rgba(66,232,213,0.4) 0%, rgba(66,232,213,0) 70%)'
         }}
       />
     </div>
