@@ -212,7 +212,7 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
       ctx.restore();
       
       time += 0.01;
-      animationFrameRef.current = requestAnimationFrame(animate);
+      animationRef.current = requestAnimationFrame(animate);
     };
     
     animate();
