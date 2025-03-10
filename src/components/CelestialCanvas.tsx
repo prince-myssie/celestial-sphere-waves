@@ -30,30 +30,30 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
     switch (state) {
       case 'listening':
         return {
-          amplitude: baseAmplitude + audioLevel * 0.2,
+          amplitude: baseAmplitude + audioLevel * 0.3,
           speed: baseSpeed * 1.5,
-          intensity: baseIntensity + audioLevel * 0.4,
-          colors: ['#59c0e8', '#e06ebb', '#42e8d5', '#e06ebb'],
-          layerCount: 3,
-          glowIntensity: 0.8 + audioLevel * 0.3
+          intensity: baseIntensity + audioLevel * 0.6,
+          colors: ['#59c0e8', '#e06ebb', '#42e8d5', '#e06ebb', '#59c0e8'],
+          formCount: 5,
+          glowIntensity: 1.2 + audioLevel * 0.5
         };
       case 'speaking':
         return {
-          amplitude: baseAmplitude + audioLevel * 0.25,
-          speed: baseSpeed * 2,
-          intensity: baseIntensity + audioLevel * 0.5,
+          amplitude: baseAmplitude + audioLevel * 0.4,
+          speed: baseSpeed * 2.5,
+          intensity: baseIntensity + audioLevel * 0.7,
           colors: ['#e06ebb', '#42e8d5', '#59c0e8', '#42e8d5', '#e06ebb'],
-          layerCount: 3,
-          glowIntensity: 1.0 + audioLevel * 0.4
+          formCount: 5,
+          glowIntensity: 1.5 + audioLevel * 0.6
         };
       default: // idle
         return {
           amplitude: baseAmplitude,
           speed: baseSpeed,
           intensity: baseIntensity,
-          colors: ['#42e8d5', '#59c0e8', '#e06ebb'],
-          layerCount: 3,
-          glowIntensity: 0.7
+          colors: ['#42e8d5', '#59c0e8', '#e06ebb', '#59c0e8', '#42e8d5'],
+          formCount: 5,
+          glowIntensity: 0.9
         };
     }
   };
@@ -106,11 +106,11 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
         centerX, centerY, radius * 1.4
       );
       outerGlow.addColorStop(0, 'rgba(255, 255, 255, 0)');
-      outerGlow.addColorStop(0.7, 'rgba(255, 255, 255, 0.1)');
+      outerGlow.addColorStop(0.7, 'rgba(255, 255, 255, 0.15)');
       outerGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = outerGlow;
       ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = 30;
       ctx.fill();
       ctx.shadowBlur = 0;
       
@@ -121,7 +121,7 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
         centerX - radius * 0.2, centerY - radius * 0.2, radius * 0.1,
         centerX, centerY, radius * 1.2
       );
-      sphereGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+      sphereGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
       sphereGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');
       sphereGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = sphereGradient;
@@ -141,7 +141,7 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
         centerX - radius * 0.15, centerY - radius * 0.15, 0,
         centerX - radius * 0.15, centerY - radius * 0.15, radius * 0.2
       );
-      highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+      highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
       highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = highlightGradient;
       ctx.fill();
@@ -152,64 +152,112 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.clip();
       
-      // Draw individual blob layers with neon effect
-      for (let layer = 0; layer < config.layerCount; layer++) {
-        const color = config.colors[layer % config.colors.length];
-        const layerScale = 1 - (layer * 0.15); // Each inner layer gets smaller
-        const segmentCount = 16; // More segments for smoother curves
+      // Draw 5 individual organic forms that undulate in 3D space
+      for (let formIndex = 0; formIndex < config.formCount; formIndex++) {
+        const color = config.colors[formIndex % config.colors.length];
         
         // Apply neon glow effect
         ctx.shadowColor = color;
-        ctx.shadowBlur = 15 * config.glowIntensity;
+        ctx.shadowBlur = 20 * config.glowIntensity;
         
+        // Create initial phase offset for each form for more varied movement
+        const phaseOffset = formIndex * (Math.PI * 2 / config.formCount);
+        
+        // Create a form that's always connected to the center
         ctx.beginPath();
         
-        // Create smooth, rounded blob
+        // Calculate form expansion based on audio level
+        const expansionFactor = 0.5 + (audioLevel * 0.5);
+        const maxRadius = radius * 0.95; // Keep within sphere bounds
+        
+        // Create a more dynamic, organic shape that undulates from the center
+        const segmentCount = 36; // More segments for smoother curves
+        
         for (let j = 0; j <= segmentCount; j++) {
-          const angle = (j / segmentCount) * Math.PI * 2 + time * (config.speed * (1 + layer * 0.2));
+          const segmentAngle = (j / segmentCount) * Math.PI * 2;
+          const angle = segmentAngle + time * config.speed * (1 + formIndex * 0.3) + phaseOffset;
           
-          // Calculate dynamic distortion factors
-          const pulseFactor = 0.5 + Math.sin(time * 1.5 + layer * 0.7) * 0.2;
-          const distortionFactor = Math.sin(time * 3 + j * 0.5 + layer) * config.amplitude;
+          // Use sine and cosine waves of different frequencies for more organic shapes
+          const frequencyA = 2 + formIndex * 0.5;
+          const frequencyB = 3 + formIndex * 0.7;
+          const frequencyC = 4 + formIndex * 0.4;
           
-          // Calculate blob radius with distortion
-          const baseRadius = radius * layerScale * pulseFactor;
-          const distortion = distortionFactor * radius * 0.2 * config.intensity;
-          const blobRadius = baseRadius + distortion;
+          // Create pulsing effect based on time and audio
+          const pulseFactor = 0.6 + 
+            Math.sin(time * 1.2 + formIndex * 0.5) * 0.2 + 
+            (state !== 'idle' ? audioLevel * 0.3 : 0);
           
-          // Calculate position, always ensuring it stays within the sphere bounds
-          const maxAllowedRadius = radius * 0.95; // Keep within sphere
-          const actualRadius = Math.min(blobRadius, maxAllowedRadius);
+          // Create organic distortion based on multiple sine waves
+          const distortion = 
+            Math.sin(angle * frequencyA + time * 2) * config.amplitude * 0.7 +
+            Math.cos(angle * frequencyB + time * 1.5) * config.amplitude * 0.5 +
+            Math.sin(angle * frequencyC + time * 3) * config.amplitude * 0.3;
           
-          const x = centerX + Math.cos(angle) * actualRadius;
-          const y = centerY + Math.sin(angle) * actualRadius;
+          // Distance from center varies with audioLevel
+          const distanceMultiplier = 0.3 + (expansionFactor * 0.7);
           
+          // Calculate the radius for this point with breathing effect
+          const breathingEffect = 0.7 + Math.sin(time * 0.8 + formIndex) * 0.3;
+          const baseFormRadius = radius * distanceMultiplier * pulseFactor * breathingEffect;
+          
+          // Apply distortion based on current audio level and state
+          const audioDistortion = state !== 'idle' 
+            ? distortion * radius * 0.3 * config.intensity 
+            : distortion * radius * 0.2 * config.intensity;
+          
+          // Calculate final form radius with constraints
+          const formRadius = Math.min(baseFormRadius + audioDistortion, maxRadius);
+          
+          // Calculate 3D effect using z-factor - makes forms appear to move in and out of screen
+          const zFactor = 0.7 + Math.sin(angle * 2 + time * 1.5 + formIndex * 0.7) * 0.3;
+          
+          // Apply 3D perspective to x and y coordinates
+          const x = centerX + Math.cos(angle) * formRadius * zFactor;
+          const y = centerY + Math.sin(angle) * formRadius * zFactor;
+          
+          // Define path
           if (j === 0) {
             ctx.moveTo(x, y);
           } else {
-            // Get previous point for curve calculation
-            const prevAngle = ((j - 1) / segmentCount) * Math.PI * 2 + time * (config.speed * (1 + layer * 0.2));
-            const prevPulseFactor = 0.5 + Math.sin(time * 1.5 + layer * 0.7 - 0.1) * 0.2;
-            const prevDistortionFactor = Math.sin(time * 3 + (j-1) * 0.5 + layer) * config.amplitude;
-            const prevBaseRadius = radius * layerScale * prevPulseFactor;
-            const prevDistortion = prevDistortionFactor * radius * 0.2 * config.intensity;
-            const prevBlobRadius = prevBaseRadius + prevDistortion;
-            const prevActualRadius = Math.min(prevBlobRadius, maxAllowedRadius);
+            // Calculate control points for smooth, organic curves
+            // Distance between control points affects the smoothness and undulation
+            const prevAngle = ((j - 1) / segmentCount) * Math.PI * 2 + time * config.speed * (1 + formIndex * 0.3) + phaseOffset;
+            const prevDistortion = 
+              Math.sin(prevAngle * frequencyA + time * 2) * config.amplitude * 0.7 +
+              Math.cos(prevAngle * frequencyB + time * 1.5) * config.amplitude * 0.5 +
+              Math.sin(prevAngle * frequencyC + time * 3) * config.amplitude * 0.3;
             
-            const prevX = centerX + Math.cos(prevAngle) * prevActualRadius;
-            const prevY = centerY + Math.sin(prevAngle) * prevActualRadius;
+            const prevPulseFactor = 0.6 + 
+              Math.sin(time * 1.2 + formIndex * 0.5 - 0.1) * 0.2 + 
+              (state !== 'idle' ? audioLevel * 0.3 : 0);
             
-            // Calculate control point for smooth curve
-            // More dynamic control points for organic movement
+            const prevBreathingEffect = 0.7 + Math.sin(time * 0.8 + formIndex - 0.1) * 0.3;
+            const prevBaseFormRadius = radius * distanceMultiplier * prevPulseFactor * prevBreathingEffect;
+            
+            const prevAudioDistortion = state !== 'idle' 
+              ? prevDistortion * radius * 0.3 * config.intensity 
+              : prevDistortion * radius * 0.2 * config.intensity;
+            
+            const prevFormRadius = Math.min(prevBaseFormRadius + prevAudioDistortion, maxRadius);
+            
+            const prevZFactor = 0.7 + Math.sin(prevAngle * 2 + time * 1.5 + formIndex * 0.7) * 0.3;
+            
+            const prevX = centerX + Math.cos(prevAngle) * prevFormRadius * prevZFactor;
+            const prevY = centerY + Math.sin(prevAngle) * prevFormRadius * prevZFactor;
+            
+            // Calculate control point - adjust these for different curve styles
             const midAngle = (prevAngle + angle) / 2;
-            const controlDistanceFactor = 0.5 + Math.sin(time * 2 + j + layer * 0.3) * 0.2;
-            const controlPointDistance = (prevActualRadius + actualRadius) / 2 * controlDistanceFactor;
+            const controlDistanceFactor = 0.8 + Math.sin(time * 2 + j * 0.3 + formIndex) * 0.2;
             
-            // Calculate control point position with some randomness
-            const cpX = centerX + Math.cos(midAngle) * controlPointDistance * (1 + Math.sin(time * 4 + j) * 0.1);
-            const cpY = centerY + Math.sin(midAngle) * controlPointDistance * (1 + Math.cos(time * 4 + j) * 0.1);
+            const controlDistance = 
+              ((prevFormRadius * prevZFactor) + (formRadius * zFactor)) / 2 * 
+              controlDistanceFactor * 
+              (1 + audioLevel * 0.3);
             
-            // Use quadratic curve for smoother, more organic shape
+            const cpX = centerX + Math.cos(midAngle) * controlDistance;
+            const cpY = centerY + Math.sin(midAngle) * controlDistance;
+            
+            // Use quadratic curve for smoother, organic shapes
             ctx.quadraticCurveTo(cpX, cpY, x, y);
           }
         }
@@ -219,18 +267,41 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
         // Create radial gradient with neon effect
         const gradient = ctx.createRadialGradient(
           centerX, centerY, 0,
-          centerX, centerY, radius * layerScale
+          centerX, centerY, radius
         );
         
-        // Apply color based on state
-        const alphaBase = 0.8 - (layer * 0.2);
+        // Apply color based on state and form index
         gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-        gradient.addColorStop(0.3, `${color}ee`); // More opaque near center
-        gradient.addColorStop(0.7, `${color}88`); // Semi-transparent
-        gradient.addColorStop(1, `${color}33`); // Very transparent at edges
+        gradient.addColorStop(0.3, `${color}ee`);  // More opaque near center
+        gradient.addColorStop(0.7, `${color}99`);  // Semi-transparent mid
+        gradient.addColorStop(1, `${color}55`);    // Very transparent at edges
         
         ctx.fillStyle = gradient;
         ctx.globalCompositeOperation = 'screen'; // Creates light blend for neon effect
+        ctx.fill();
+        
+        // Add inner highlight to show 3D effect
+        const innerRadius = radius * 0.1 * (1 + (audioLevel * 0.5));
+        const highlightColor = state === 'listening' ? '#e06ebb' : state === 'speaking' ? '#42e8d5' : '#59c0e8';
+        
+        ctx.beginPath();
+        ctx.arc(
+          centerX, 
+          centerY, 
+          innerRadius,
+          0, Math.PI * 2
+        );
+        
+        const innerGlow = ctx.createRadialGradient(
+          centerX, centerY, 0,
+          centerX, centerY, innerRadius
+        );
+        innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        innerGlow.addColorStop(0.5, `${highlightColor}99`);
+        innerGlow.addColorStop(1, `${highlightColor}00`);
+        
+        ctx.fillStyle = innerGlow;
+        ctx.globalCompositeOperation = 'screen';
         ctx.fill();
       }
       
@@ -239,12 +310,13 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
       
       // Draw central glow
       ctx.beginPath();
-      const glowRadius = radius * 0.2 * (1 + Math.sin(time * 2) * 0.05);
+      const glowRadius = radius * 0.15 * (1 + audioLevel * 0.5) * (1 + Math.sin(time * 2) * 0.1);
       const glowGradient = ctx.createRadialGradient(
         centerX, centerY, 0,
         centerX, centerY, glowRadius
       );
-      glowGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+      glowGradient.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
+      glowGradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.7)');
       glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = glowGradient;
       ctx.globalCompositeOperation = 'screen';
@@ -253,33 +325,27 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
       
       // Add small highlight spots (like reflections)
       const spotColor = state === 'idle' ? '#59c0e8' : 
-                         state === 'listening' ? '#e06ebb' : '#42e8d5';
+                        state === 'listening' ? '#e06ebb' : '#42e8d5';
       
-      ctx.beginPath();
-      ctx.ellipse(
-        centerX + radius * 0.1, 
-        centerY - radius * 0.25, 
-        radius * 0.05, 
-        radius * 0.02, 
-        Math.PI * 0.25, 
-        0, Math.PI * 2
-      );
-      ctx.fillStyle = `${spotColor}99`;
-      ctx.globalCompositeOperation = 'lighten';
-      ctx.fill();
-      
-      // Second smaller highlight
-      ctx.beginPath();
-      ctx.ellipse(
-        centerX - radius * 0.15, 
-        centerY + radius * 0.2, 
-        radius * 0.02, 
-        radius * 0.01, 
-        Math.PI * -0.2, 
-        0, Math.PI * 2
-      );
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-      ctx.fill();
+      // Highlight spots that move with audio
+      const spotCount = 3;
+      for (let i = 0; i < spotCount; i++) {
+        const angle = (i / spotCount) * Math.PI * 2 + time;
+        const spotDistance = radius * (0.35 + audioLevel * 0.15);
+        
+        ctx.beginPath();
+        ctx.ellipse(
+          centerX + Math.cos(angle) * spotDistance, 
+          centerY + Math.sin(angle) * spotDistance, 
+          radius * 0.04,
+          radius * 0.02,
+          angle + Math.PI/4, 
+          0, Math.PI * 2
+        );
+        ctx.fillStyle = `${spotColor}99`;
+        ctx.globalCompositeOperation = 'lighten';
+        ctx.fill();
+      }
       
       ctx.restore();
       
@@ -305,13 +371,13 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
         }}
       />
       <div 
-        className="absolute inset-0 celestial-glow rounded-full opacity-60"
+        className="absolute inset-0 celestial-glow rounded-full opacity-70"
         style={{
           background: state === 'idle' 
-            ? 'radial-gradient(circle, rgba(89,192,232,0.3) 0%, rgba(89,192,232,0) 70%)' 
+            ? 'radial-gradient(circle, rgba(89,192,232,0.35) 0%, rgba(89,192,232,0) 70%)' 
             : state === 'listening'
-            ? 'radial-gradient(circle, rgba(224,110,187,0.4) 0%, rgba(224,110,187,0) 70%)'
-            : 'radial-gradient(circle, rgba(66,232,213,0.4) 0%, rgba(66,232,213,0) 70%)'
+            ? 'radial-gradient(circle, rgba(224,110,187,0.45) 0%, rgba(224,110,187,0) 70%)'
+            : 'radial-gradient(circle, rgba(66,232,213,0.45) 0%, rgba(66,232,213,0) 70%)'
         }}
       />
     </div>
