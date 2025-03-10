@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, Play, Square, Volume2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Mic, Play, Square, Upload, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AudioVisualizerProps {
@@ -18,6 +19,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -25,11 +27,11 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Initialize audio element
   useEffect(() => {
     audioElementRef.current = new Audio();
-    audioElementRef.current.src = '/lovable-uploads/d833156a-5429-43ee-8b11-33dee55734c4.png'; // Placeholder, will be replaced with actual audio
     
     return () => {
       if (audioElementRef.current) {
@@ -124,8 +126,32 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     onStateChange('idle');
   };
   
+  // Handle file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setAudioFile(files[0]);
+      if (audioElementRef.current) {
+        const url = URL.createObjectURL(files[0]);
+        audioElementRef.current.src = url;
+      }
+    }
+  };
+  
+  // Trigger file input click
+  const triggerFileUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
   // Start audio playback
   const startSpeaking = () => {
+    if (!audioFile && !audioElementRef.current?.src) {
+      triggerFileUpload();
+      return;
+    }
+    
     stopListening();
     setupAudioAnalysis();
     
@@ -139,7 +165,6 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
       analyserRef.current.connect(audioContextRef.current.destination);
       
       audioElementRef.current.play();
-      audioElementRef.current.loop = true;
       
       setIsSpeaking(true);
       onStateChange('speaking');
@@ -206,7 +231,30 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         >
           {isSpeaking ? <Square size={18} /> : <Volume2 size={18} />}
         </Button>
+        
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={triggerFileUpload}
+          className="rounded-full h-12 w-12 shadow-md"
+        >
+          <Upload size={18} />
+        </Button>
+        
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          accept="audio/*"
+          className="hidden" 
+          onChange={handleFileUpload}
+        />
       </div>
+      
+      {audioFile && (
+        <p className="text-sm text-gray-300 truncate max-w-xs">
+          Fichier: {audioFile.name}
+        </p>
+      )}
       
       <div className="w-full max-w-xs bg-gray-700/30 h-2 rounded-full overflow-hidden">
         <div 

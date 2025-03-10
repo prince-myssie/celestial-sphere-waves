@@ -30,24 +30,27 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
     switch (state) {
       case 'listening':
         return {
-          amplitude: baseAmplitude + audioLevel * 0.1,
+          amplitude: baseAmplitude + audioLevel * 0.15,
           speed: baseSpeed * 1.5,
-          intensity: baseIntensity + audioLevel * 0.2,
-          colors: ['#59c0e8', '#e06ebb', '#42e8d5']
+          intensity: baseIntensity + audioLevel * 0.3,
+          colors: ['#59c0e8', '#e06ebb', '#42e8d5', '#e06ebb'],
+          blobCount: 4
         };
       case 'speaking':
         return {
-          amplitude: baseAmplitude + audioLevel * 0.15,
+          amplitude: baseAmplitude + audioLevel * 0.2,
           speed: baseSpeed * 2,
-          intensity: baseIntensity + audioLevel * 0.3,
-          colors: ['#e06ebb', '#42e8d5', '#59c0e8']
+          intensity: baseIntensity + audioLevel * 0.4,
+          colors: ['#e06ebb', '#42e8d5', '#59c0e8', '#42e8d5', '#e06ebb'],
+          blobCount: 5
         };
       default: // idle
         return {
           amplitude: baseAmplitude,
           speed: baseSpeed,
           intensity: baseIntensity,
-          colors: ['#42e8d5', '#59c0e8', '#e06ebb']
+          colors: ['#42e8d5', '#59c0e8', '#e06ebb'],
+          blobCount: 3
         };
     }
   };
@@ -109,7 +112,7 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       const sphereGradient = ctx.createRadialGradient(
-        centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.1,
+        centerX - radius * 0.2, centerY - radius * 0.2, radius * 0.1,
         centerX, centerY, radius * 1.2
       );
       sphereGradient.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
@@ -124,49 +127,69 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.clip();
       
-      // Draw waves or forms based on state
-      for (let i = 0; i < 3; i++) {
-        const waveOffset = (Math.PI * 2 / 3) * i + time * (config.speed * (i + 1));
+      // Draw blobs that extend from center
+      for (let i = 0; i < config.blobCount; i++) {
         const color = config.colors[i % config.colors.length];
-        
-        const segments = 3;
-        const segmentAngle = Math.PI * 2 / segments;
+        const segmentCount = 12; // More segments for smoother curves
         
         ctx.beginPath();
+        ctx.moveTo(centerX, centerY); // Start at center
         
-        for (let j = 0; j <= segments; j++) {
-          const angle = j * segmentAngle + waveOffset;
-          const waveRadius = radius * (0.3 + Math.sin(time * 0.5 + i) * 0.1);
+        for (let j = 0; j <= segmentCount; j++) {
+          const angle = (j / segmentCount) * Math.PI * 2 + time * (config.speed * (i + 1));
           
-          const x = centerX + Math.cos(angle) * waveRadius;
-          const y = centerY + Math.sin(angle) * waveRadius;
+          // Calculate blob radius - make it extend from center
+          const blobFactor = Math.sin(time * 0.5 + i) * 0.1;
+          const variationFactor = 0.6 + Math.sin(time * 2 + i * 2) * 0.2;
+          const audioFactor = state !== 'idle' ? audioLevel * 0.2 : 0;
+          const blobRadius = radius * (variationFactor + blobFactor + audioFactor);
           
-          if (j === 0) {
-            ctx.moveTo(centerX, centerY);
+          // Calculate end point for this segment
+          const endX = centerX + Math.cos(angle) * blobRadius;
+          const endY = centerY + Math.sin(angle) * blobRadius;
+          
+          // Make sure blob doesn't exceed the main circle
+          const distanceFromCenter = Math.sqrt(Math.pow(endX - centerX, 2) + Math.pow(endY - centerY, 2));
+          const maxRadius = radius * 0.95; // Keep blob within sphere
+          
+          let actualX = endX;
+          let actualY = endY;
+          
+          if (distanceFromCenter > maxRadius) {
+            const ratio = maxRadius / distanceFromCenter;
+            actualX = centerX + (endX - centerX) * ratio;
+            actualY = centerY + (endY - centerY) * ratio;
+          }
+          
+          // Use quadratic curves for smooth edges
+          if (j > 0) {
+            const prevAngle = ((j - 1) / segmentCount) * Math.PI * 2 + time * (config.speed * (i + 1));
+            const prevBlobRadius = radius * (variationFactor + Math.sin(time * 0.5 + i + 0.1) * 0.1 + audioFactor);
+            const prevX = centerX + Math.cos(prevAngle) * prevBlobRadius;
+            const prevY = centerY + Math.sin(prevAngle) * prevBlobRadius;
+            
+            // Control point for the curve
+            const cpAngle = (prevAngle + angle) / 2;
+            const cpDist = blobRadius * (1 + config.amplitude * Math.sin(time * 3 + i));
+            const cpX = centerX + Math.cos(cpAngle) * cpDist;
+            const cpY = centerY + Math.sin(cpAngle) * cpDist;
+            
+            ctx.quadraticCurveTo(cpX, cpY, actualX, actualY);
           } else {
-            const cp1x = centerX + Math.cos(angle - segmentAngle / 2) * waveRadius * 1.5;
-            const cp1y = centerY + Math.sin(angle - segmentAngle / 2) * waveRadius * 1.5;
-            
-            const intensity = Math.sin(time * 0.5) * 0.5 + 0.5;
-            const amplitudeFactor = config.amplitude * (1 + Math.sin(time * 3 + i * 2) * 0.2);
-            
-            // Modulate control points for more dynamic shapes
-            ctx.quadraticCurveTo(
-              cp1x + Math.cos(time * 2 + i) * amplitudeFactor * radius,
-              cp1y + Math.sin(time * 2 + i) * amplitudeFactor * radius,
-              x, y
-            );
+            ctx.lineTo(actualX, actualY);
           }
         }
         
-        // Create radial gradient
+        ctx.closePath();
+        
+        // Create radial gradient from center
         const gradient = ctx.createRadialGradient(
           centerX, centerY, 0,
           centerX, centerY, radius
         );
         gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-        gradient.addColorStop(0.3, `${color}CC`);
-        gradient.addColorStop(1, `${color}22`);
+        gradient.addColorStop(0.4, `${color}99`);
+        gradient.addColorStop(1, `${color}33`);
         
         ctx.fillStyle = gradient;
         ctx.globalCompositeOperation = 'screen';
@@ -189,7 +212,7 @@ const CelestialCanvas: React.FC<CelestialCanvasProps> = ({
       ctx.restore();
       
       time += 0.01;
-      animationRef.current = requestAnimationFrame(animate);
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
     
     animate();

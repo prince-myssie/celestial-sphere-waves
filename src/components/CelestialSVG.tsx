@@ -45,44 +45,65 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
     
     const { count, scale, variation, colors } = config[state];
     const center = size / 2;
-    const radius = size * scale;
+    const maxRadius = size * scale;
     
     const blobs = [];
     
     for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2 + offset;
-      const blobScale = 1 + Math.sin(offset * 2 + i) * variation;
+      // Set a common anchor point at the center for all blobs
+      const anchorX = center;
+      const anchorY = center;
       
-      // Create different blob shapes based on their index
+      // Create different blob shapes using bezier curves for smoothness
       const points = [];
-      const pointCount = 6 + i % 3;
+      const pointCount = 8 + i % 4; // Increased point count for smoother shapes
       
       for (let j = 0; j <= pointCount; j++) {
-        const pointAngle = (j / pointCount) * Math.PI * 2;
-        const distortion = Math.sin(offset * 3 + i + j) * variation * radius;
-        const pointRadius = radius * blobScale + distortion;
+        const angle = (j / pointCount) * Math.PI * 2 + offset * (1 + i * 0.1);
+        // Calculate radius for this point - varies with angle and time
+        const blobScale = 1 + Math.sin(offset * 2 + i) * variation;
+        const distortion = Math.sin(offset * 3 + i + j) * variation * maxRadius;
+        const pointRadius = maxRadius * blobScale * (0.5 + Math.sin(offset + i * 0.7) * 0.2) + distortion;
         
-        const x = center + Math.cos(angle + pointAngle) * pointRadius;
-        const y = center + Math.sin(angle + pointAngle) * pointRadius;
+        // Ensure radius stays within limits
+        const clampedRadius = Math.min(pointRadius, maxRadius);
+        
+        // Calculate point position
+        const x = anchorX + Math.cos(angle) * clampedRadius;
+        const y = anchorY + Math.sin(angle) * clampedRadius;
         
         if (j === 0) {
           points.push(`M${x},${y}`);
-        } else if (j === pointCount) {
-          points.push(`Z`);
         } else {
-          // Use quadratic bezier curves for smoother shapes
-          const prevAngle = ((j - 1) / pointCount) * Math.PI * 2;
-          const cpAngle = (prevAngle + pointAngle) / 2;
-          const cpDistortion = Math.sin(offset * 2 + i + j) * variation * radius * 1.5;
-          const cpRadius = radius * blobScale + cpDistortion;
+          // Use cubic bezier curves for much smoother shapes
+          const prevAngle = ((j - 1) / pointCount) * Math.PI * 2 + offset * (1 + i * 0.1);
+          const prevRadius = maxRadius * blobScale * (0.5 + Math.sin(offset + i * 0.7 + 0.1) * 0.2) + 
+            Math.sin(offset * 3 + i + (j-1)) * variation * maxRadius;
+          const clampedPrevRadius = Math.min(prevRadius, maxRadius);
           
-          const cpx = center + Math.cos(angle + cpAngle) * cpRadius;
-          const cpy = center + Math.sin(angle + cpAngle) * cpRadius;
+          const prevX = anchorX + Math.cos(prevAngle) * clampedPrevRadius;
+          const prevY = anchorY + Math.sin(prevAngle) * clampedPrevRadius;
           
-          points.push(`Q${cpx},${cpy} ${x},${y}`);
+          // Control point 1
+          const cp1Angle = prevAngle + (angle - prevAngle) * 0.3;
+          const cp1Radius = clampedPrevRadius * 1.2;
+          const cp1x = anchorX + Math.cos(cp1Angle) * cp1Radius;
+          const cp1y = anchorY + Math.sin(cp1Angle) * cp1Radius;
+          
+          // Control point 2
+          const cp2Angle = prevAngle + (angle - prevAngle) * 0.7;
+          const cp2Radius = clampedRadius * 1.2;
+          const cp2x = anchorX + Math.cos(cp2Angle) * cp2Radius;
+          const cp2y = anchorY + Math.sin(cp2Angle) * cp2Radius;
+          
+          points.push(`C${cp1x},${cp1y} ${cp2x},${cp2y} ${x},${y}`);
         }
       }
       
+      // Close the path
+      points.push("Z");
+      
+      // Add to blobs array
       blobs.push({
         path: points.join(' '),
         color: colors[i % colors.length],
@@ -114,7 +135,7 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
       >
         {/* Background Circle with subtle gradient */}
         <defs>
-          <radialGradient id="sphereGradient" cx="40%" cy="40%" r="60%" fx="40%" fy="40%">
+          <radialGradient id="sphereGradient" cx="50%" cy="50%" r="50%" fx="40%" fy="40%">
             <stop offset="0%" stopColor="rgba(255, 255, 255, 0.5)" />
             <stop offset="70%" stopColor="rgba(255, 255, 255, 0.1)" />
             <stop offset="100%" stopColor="rgba(255, 255, 255, 0)" />
@@ -150,6 +171,15 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
           ))}
         </defs>
         
+        {/* Container Circle */}
+        <circle 
+          cx={size / 2} 
+          cy={size / 2} 
+          r={size * 0.4} 
+          fill="url(#sphereGradient)" 
+          opacity="0.7"
+        />
+        
         {/* Outer glow */}
         <circle 
           cx={size / 2} 
@@ -161,15 +191,6 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
           filter="url(#glow)"
         />
         
-        {/* Container Circle */}
-        <circle 
-          cx={size / 2} 
-          cy={size / 2} 
-          r={size * 0.4} 
-          fill="url(#sphereGradient)" 
-          opacity="0.7"
-        />
-        
         {/* Render blob shapes */}
         <g>
           {blobs.map((blob, index) => (
@@ -178,10 +199,16 @@ const CelestialSVG: React.FC<CelestialSVGProps> = ({
               d={blob.path}
               fill={`url(#blobGradient-${index})`}
               opacity={blob.opacity}
-              className="animate-blob-movement"
+              className={state !== 'idle' ? "animate-pulse-slow" : ""}
               style={{ 
                 animationDelay: blob.animationDelay,
-                transform: `translate(${size / 2}px, ${size / 2}px) scale(${1 + Math.sin(offset + index) * 0.05}) rotate(${Math.sin(offset * 0.5 + index) * 10}deg) translate(-${size / 2}px, -${size / 2}px)` 
+                transformOrigin: 'center',
+                transformBox: 'fill-box',
+                transform: state === 'idle' 
+                  ? `scale(${1 + Math.sin(offset + index) * 0.03})`
+                  : state === 'listening'
+                  ? `scale(${1 + Math.sin(offset * 2 + index) * 0.05 + audioLevel * 0.1})`
+                  : `scale(${1 + Math.sin(offset * 3 + index) * 0.08 + audioLevel * 0.15})`
               }}
             />
           ))}
