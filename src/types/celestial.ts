@@ -1,5 +1,5 @@
 
-export type CelestialState = 'idle' | 'listening' | 'speaking';
+export type CelestialState = 'idle' | 'listening' | 'speaking' | 'thinking' | 'initializing' | 'connecting' | 'disconnected';
 
 export interface CelestialCanvasProps {
   size?: number;
